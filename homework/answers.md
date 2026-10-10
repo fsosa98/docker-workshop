@@ -10,4 +10,4 @@ pip 26.2.1
 
 ## Question 2. Understanding Docker networking and docker-compose
 
-
+db:5432
