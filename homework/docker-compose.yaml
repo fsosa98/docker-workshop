@@ -1,0 +1,58 @@
+services:
+  pgdatabase:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: ny_taxi
+    volumes:
+      - vol-pgdata:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d ny_taxi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - vol-pgadmin:/var/lib/pgadmin
+    ports:
+      - "8085:80"
+    depends_on:
+      - pgdatabase
+
+  ingest-trips:
+    build: .
+    image: taxi_ingest_homework:v001
+    volumes:
+      - ./:/data:ro
+    command:
+      - --pg-host=pgdatabase
+      - --target-table=green_taxi_trips
+      - --source=/data/green_tripdata_2025-11.parquet
+    depends_on:
+      pgdatabase:
+        condition: service_healthy
+
+  ingest-zones:
+    build: .
+    image: taxi_ingest_homework:v001
+    volumes:
+      - ./:/data:ro
+    command:
+      - --pg-host=pgdatabase
+      - --target-table=zones
+      - --source=/data/taxi_zone_lookup.csv
+    depends_on:
+      pgdatabase:
+        condition: service_healthy
+
+volumes:
+  vol-pgdata:
+  vol-pgadmin:
